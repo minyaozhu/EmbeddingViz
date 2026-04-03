@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Embedding Explorer — CLIP Image Embedding Visualization</title>
+    <meta name="description" content="Interactive visualization of CLIP image embeddings projected to 2D space with region selection and image browsing.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header id="app-header">
+        <div class="header-left">
+            <div class="logo">
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                    <circle cx="14" cy="14" r="12" stroke="url(#logo-grad)" stroke-width="2.5" fill="none"/>
+                    <circle cx="9" cy="11" r="2.5" fill="url(#logo-grad)"/>
+                    <circle cx="18" cy="10" r="2" fill="url(#logo-grad)" opacity="0.7"/>
+                    <circle cx="14" cy="18" r="2.2" fill="url(#logo-grad)" opacity="0.85"/>
+                    <circle cx="20" cy="17" r="1.5" fill="url(#logo-grad)" opacity="0.5"/>
+                    <defs>
+                        <linearGradient id="logo-grad" x1="0" y1="0" x2="28" y2="28">
+                            <stop offset="0%" stop-color="#818cf8"/>
+                            <stop offset="100%" stop-color="#c084fc"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <h1>Embedding Explorer</h1>
+            <div class="model-selector-wrapper">
+                <label for="model-select" class="model-label">Model</label>
+                <div class="select-container">
+                    <select id="model-select">
+                        <option value="data/embeddings_vitb32.json" data-label="ViT-B/32" data-dim="512">CLIP ViT-B/32</option>
+                        <option value="data/embeddings_vitbigg14.json" data-label="ViT-bigG/14" data-dim="1280">CLIP ViT-bigG/14</option>
+                    </select>
+                    <svg class="select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="stat-pill" id="stat-total">
+                <span class="stat-label">Images</span>
+                <span class="stat-value" id="total-count">—</span>
+            </div>
+            <div class="stat-pill" id="stat-selected">
+                <span class="stat-label">Selected</span>
+                <span class="stat-value" id="selected-count">0</span>
+            </div>
+            <div class="stat-pill" id="stat-dim">
+                <span class="stat-label">Embedding</span>
+                <span class="stat-value" id="dim-info">—</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <main id="app-main">
+        <!-- Left: Scatter Plot -->
+        <section id="scatter-section">
+            <div class="section-header">
+                <h2>Embedding Space <span class="subtle" id="projection-subtitle">(t-SNE 2D Projection)</span></h2>
+                <div class="toolbar">
+                    <!-- Projection Selector -->
+                    <div class="proj-selector" id="proj-selector" role="group" aria-label="Projection method">
+                        <button class="proj-btn active" data-proj="tsne" id="proj-tsne" title="t-SNE: preserves local clusters">t-SNE</button>
+                        <button class="proj-btn" data-proj="pca"  id="proj-pca"  title="PCA: preserves global variance">PCA</button>
+                        <button class="proj-btn" data-proj="umap" id="proj-umap" title="UMAP: balance of local & global">UMAP</button>
+                    </div>
+                    <div class="separator"></div>
+                    <!-- Selection tools -->
+                    <button id="btn-lasso" class="tool-btn active" title="Lasso Selection">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c1.85 0 3.58-.5 5.07-1.37"/>
+                            <path d="M22 12c0-5.52-4.48-10-10-10" stroke-dasharray="4 3"/>
+                            <circle cx="18" cy="18" r="3" fill="currentColor" opacity="0.3"/>
+                        </svg>
+                        <span>Lasso</span>
+                    </button>
+                    <button id="btn-rect" class="tool-btn" title="Rectangle Selection">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="4 3"/>
+                        </svg>
+                        <span>Rect</span>
+                    </button>
+                    <div class="separator"></div>
+                    <button id="btn-clear" class="tool-btn" title="Clear Selection">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                        <span>Clear</span>
+                    </button>
+                    <button id="btn-reset-zoom" class="tool-btn" title="Reset Zoom">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="1 4 1 10 7 10"/>
+                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                        </svg>
+                        <span>Reset</span>
+                    </button>
+                </div>
+            </div>
+            <div id="canvas-container">
+                <canvas id="scatter-canvas"></canvas>
+                <canvas id="selection-canvas"></canvas>
+                <!-- Tooltip -->
+                <div id="tooltip" class="tooltip hidden">
+                    <img id="tooltip-img" src="" alt="Preview">
+                    <div class="tooltip-label" id="tooltip-label"></div>
+                </div>
+            </div>
+            <div class="canvas-footer">
+                <span class="hint">🖱 Drag to select • Scroll to zoom • Right-drag to pan</span>
+            </div>
+        </section>
+
+        <!-- Right: Image Gallery -->
+        <section id="gallery-section">
+            <div class="section-header">
+                <h2>Selected Images</h2>
+                <span class="gallery-count" id="gallery-count"></span>
+            </div>
+            <div id="gallery-placeholder" class="gallery-placeholder">
+                <div class="placeholder-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <path d="m21 15-5-5L5 21"/>
+                    </svg>
+                </div>
+                <p>Select a region on the scatter plot<br>to view images</p>
+            </div>
+            <div id="gallery-grid" class="gallery-grid"></div>
+        </section>
+    </main>
+
+    <!-- Image Modal -->
+    <div id="image-modal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <button id="modal-close" class="modal-close">&times;</button>
+            <img id="modal-img" src="" alt="Full size image">
+            <div class="modal-info">
+                <span id="modal-label"></span>
+                <span id="modal-coords"></span>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
