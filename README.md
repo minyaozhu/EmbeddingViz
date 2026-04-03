@@ -2,7 +2,7 @@
 
 Interactive visualization of CLIP image embeddings projected to 2D space.
 
-**[Live Demo →](https://YOUR_USERNAME.github.io/EmbeddingViz)**
+**[Live Demo →](https://minyaozhu.github.io/EmbeddingViz)**
 
 ![Screenshot](https://picsum.photos/id/10/800/400)
 
