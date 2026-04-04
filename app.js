@@ -189,7 +189,7 @@
     }
 
     function updateSubtitle() {
-        const labels = { tsne: 't-SNE', pca: 'PCA', umap: 'UMAP' };
+        const labels = { tsne: 't-SNE', pca: 'PCA', umap: 'UMAP', pumap: 'Parametric UMAP' };
         const label = data?.projections?.[currentProjection]?.label || labels[currentProjection] || currentProjection;
         if (dom.projSubtitle) {
             dom.projSubtitle.textContent = `(${label} 2D Projection)`;

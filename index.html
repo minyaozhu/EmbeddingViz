@@ -66,9 +66,10 @@
                 <div class="toolbar">
                     <!-- Projection Selector -->
                     <div class="proj-selector" id="proj-selector" role="group" aria-label="Projection method">
-                        <button class="proj-btn active" data-proj="tsne" id="proj-tsne" title="t-SNE: preserves local clusters">t-SNE</button>
-                        <button class="proj-btn" data-proj="pca"  id="proj-pca"  title="PCA: preserves global variance">PCA</button>
-                        <button class="proj-btn" data-proj="umap" id="proj-umap" title="UMAP: balance of local & global">UMAP</button>
+                        <button class="proj-btn active" data-proj="tsne"  id="proj-tsne"  title="t-SNE: preserves local clusters">t-SNE</button>
+                        <button class="proj-btn" data-proj="pca"   id="proj-pca"   title="PCA: preserves global variance">PCA</button>
+                        <button class="proj-btn" data-proj="umap"  id="proj-umap"  title="UMAP: balance of local &amp; global">UMAP</button>
+                        <button class="proj-btn" data-proj="pumap" id="proj-pumap" title="Parametric UMAP: neural-net encoder, O(n) inference on new points">P-UMAP</button>
                     </div>
                     <div class="separator"></div>
                     <!-- Selection tools -->

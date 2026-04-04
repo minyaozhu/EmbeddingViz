@@ -369,6 +369,11 @@ body {
     box-shadow: 0 2px 8px rgba(251, 146, 60, 0.35);
 }
 
+.proj-btn.active[data-proj="pumap"] {
+    background: linear-gradient(135deg, #2dd4bf, #38bdf8);
+    box-shadow: 0 2px 8px rgba(45, 212, 191, 0.35);
+}
+
 /* Transitioning state during projection switch */
 .proj-transitioning #scatter-canvas {
     opacity: 0.6;

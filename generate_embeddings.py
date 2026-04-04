@@ -200,8 +200,37 @@ def project_umap(embeddings):
     return _normalize(coords)
 
 
+def project_pumap(embeddings):
+    """Parametric UMAP projection to 2D using a neural-net encoder.
+    
+    Unlike standard UMAP, the trained encoder can project new/unseen points
+    in O(n) without re-running the full algorithm — ideal for streaming data.
+    """
+    try:
+        from umap.parametric_umap import ParametricUMAP
+    except ImportError:
+        print("  ⚠ umap-learn >= 0.5.3 with TensorFlow required for ParametricUMAP. Skipping.")
+        return None
+
+    n = len(embeddings)
+    n_neighbors = min(15, max(5, n // 20))
+    print(f"  Parametric UMAP  (n={n}, n_neighbors={n_neighbors})...", flush=True)
+    try:
+        reducer = ParametricUMAP(
+            n_components=2,
+            n_neighbors=n_neighbors,
+            min_dist=0.1,
+            verbose=False,
+        )
+        coords = reducer.fit_transform(embeddings)
+        return _normalize(coords)
+    except Exception as e:
+        print(f"  ⚠ ParametricUMAP failed: {e}")
+        return None
+
+
 def compute_all_projections(embeddings):
-    """Compute t-SNE, PCA, and UMAP projections and return as a dict."""
+    """Compute t-SNE, PCA, UMAP, and Parametric UMAP projections and return as a dict."""
     print("\n── Computing projections ──")
     results = {}
     results["tsne"] = {"coords": project_tsne(embeddings).tolist(),
@@ -210,6 +239,14 @@ def compute_all_projections(embeddings):
                        "label": "PCA",  "description": "PCA (top 2 principal components)"}
     results["umap"] = {"coords": project_umap(embeddings).tolist(),
                        "label": "UMAP", "description": "UMAP (n_neighbors=15, min_dist=0.1)"}
+
+    pumap_coords = project_pumap(embeddings)
+    if pumap_coords is not None:
+        results["pumap"] = {"coords": pumap_coords.tolist(),
+                            "label": "P-UMAP", "description": "Parametric UMAP (neural-net encoder, O(n) inference)"}
+    else:
+        print("  ℹ  Parametric UMAP skipped — results will have tsne/pca/umap only")
+
     print("✓ All projections done")
     return results
 
