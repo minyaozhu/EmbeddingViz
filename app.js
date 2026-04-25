@@ -12,9 +12,7 @@
     let data = null;           // Full loaded JSON
     let points = [];           // [{id, image, label, cluster, screenX, screenY, cx, cy}]
     let selectedIds = new Set();
-    let currentDataUrl = 'data/picsum_vitb32.json';
-    let currentDataset = 'picsum';
-    let currentModel = 'vitb32';
+    let currentDataUrl = 'data/embeddings_vitb32.json';
     let currentProjection = 'tsne';   // 'tsne' | 'pca' | 'umap' | 'pumap'
 
     // Per-projection coords cache: projCoords[key] = [[x,y], ...]
@@ -608,33 +606,17 @@
     }
 
     // ── Model Selector ────────────────────────────────────────────
-    function getDataUrl() {
-        return `data/${currentDataset}_${currentModel}.json`;
-    }
-
     function setupModelSelector() {
-        const modelSelect   = document.getElementById('model-select');
-        const modelWrapper  = modelSelect.closest('.model-selector-wrapper');
-        const datasetSelect = document.getElementById('dataset-select');
-        const datasetWrapper = datasetSelect.closest('.dataset-selector-wrapper');
+        const select  = document.getElementById('model-select');
+        const wrapper = select.closest('.model-selector-wrapper');
 
-        async function reloadData(wrapper) {
-            currentDataUrl = getDataUrl();
+        select.addEventListener('change', async e => {
+            currentDataUrl = e.target.value;
             wrapper.classList.add('model-loading');
             clearSelection();
             await loadData(currentDataUrl);
             render();
             wrapper.classList.remove('model-loading');
-        }
-
-        modelSelect.addEventListener('change', async e => {
-            currentModel = e.target.value;
-            await reloadData(modelWrapper);
-        });
-
-        datasetSelect.addEventListener('change', async e => {
-            currentDataset = e.target.value;
-            await reloadData(datasetWrapper);
         });
     }
 
