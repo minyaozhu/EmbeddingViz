@@ -122,7 +122,8 @@ body {
 }
 
 /* ── Model Selector ───────────────────────────────────────── */
-.model-selector-wrapper {
+.model-selector-wrapper,
+.dataset-selector-wrapper {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -405,7 +406,7 @@ body {
 }
 
 #selection-canvas {
-    cursor: crosshair;
+    cursor: grab;
 }
 
 .canvas-footer {
@@ -417,6 +418,20 @@ body {
 .hint {
     font-size: 11px;
     color: var(--text-muted);
+}
+
+.hint kbd {
+    display: inline-block;
+    padding: 1px 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-subtle);
+    border-radius: 3px;
+    margin: 0 1px;
+    line-height: 1.4;
 }
 
 /* ── Tooltip ───────────────────────────────────────────────── */

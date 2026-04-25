@@ -30,12 +30,22 @@
                 </svg>
             </div>
             <h1>Embedding Explorer</h1>
+            <div class="dataset-selector-wrapper">
+                <label for="dataset-select" class="model-label">Dataset</label>
+                <div class="select-container">
+                    <select id="dataset-select">
+                        <option value="picsum" data-label="Lorem Picsum">Lorem Picsum</option>
+                        <option value="flowers102" data-label="Flowers-102">Flowers-102</option>
+                    </select>
+                    <svg class="select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+            </div>
             <div class="model-selector-wrapper">
                 <label for="model-select" class="model-label">Model</label>
                 <div class="select-container">
                     <select id="model-select">
-                        <option value="data/embeddings_vitb32.json" data-label="ViT-B/32" data-dim="512">CLIP ViT-B/32</option>
-                        <option value="data/embeddings_vitbigg14.json" data-label="ViT-bigG/14" data-dim="1280">CLIP ViT-bigG/14</option>
+                        <option value="vitb32" data-label="ViT-B/32" data-dim="512">CLIP ViT-B/32</option>
+                        <option value="vitbigg14" data-label="ViT-bigG/14" data-dim="1280">CLIP ViT-bigG/14</option>
                     </select>
                     <svg class="select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
                 </div>
@@ -72,8 +82,17 @@
                         <button class="proj-btn" data-proj="pumap" id="proj-pumap" title="Parametric UMAP: neural-net encoder, O(n) inference on new points">P-UMAP</button>
                     </div>
                     <div class="separator"></div>
-                    <!-- Selection tools -->
-                    <button id="btn-lasso" class="tool-btn active" title="Lasso Selection">
+                    <!-- Interaction tools -->
+                    <button id="btn-pan" class="tool-btn active" title="Pan (H)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 11V6a2 2 0 0 0-4 0v1"/>
+                            <path d="M14 10V4a2 2 0 0 0-4 0v6"/>
+                            <path d="M10 10.5V5a2 2 0 0 0-4 0v9"/>
+                            <path d="M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+                        </svg>
+                        <span>Pan</span>
+                    </button>
+                    <button id="btn-lasso" class="tool-btn" title="Lasso Selection (L)">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c1.85 0 3.58-.5 5.07-1.37"/>
                             <path d="M22 12c0-5.52-4.48-10-10-10" stroke-dasharray="4 3"/>
@@ -81,14 +100,14 @@
                         </svg>
                         <span>Lasso</span>
                     </button>
-                    <button id="btn-rect" class="tool-btn" title="Rectangle Selection">
+                    <button id="btn-rect" class="tool-btn" title="Rectangle Selection (R)">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="4 3"/>
                         </svg>
                         <span>Rect</span>
                     </button>
                     <div class="separator"></div>
-                    <button id="btn-clear" class="tool-btn" title="Clear Selection">
+                    <button id="btn-clear" class="tool-btn" title="Clear Selection (Esc)">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="6" x2="6" y2="18"/>
                             <line x1="6" y1="6" x2="18" y2="18"/>
@@ -114,7 +133,7 @@
                 </div>
             </div>
             <div class="canvas-footer">
-                <span class="hint">🖱 Drag to select • Scroll to zoom • Right-drag to pan</span>
+                <span class="hint">🖱 Drag to pan • Scroll to zoom • <kbd>H</kbd> Pan  <kbd>L</kbd> Lasso  <kbd>R</kbd> Rect</span>
             </div>
         </section>
 

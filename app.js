@@ -12,8 +12,10 @@
     let data = null;           // Full loaded JSON
     let points = [];           // [{id, image, label, cluster, screenX, screenY, cx, cy}]
     let selectedIds = new Set();
-    let currentDataUrl = 'data/embeddings_vitb32.json';
-    let currentProjection = 'tsne';   // 'tsne' | 'pca' | 'umap'
+    let currentDataUrl = 'data/picsum_vitb32.json';
+    let currentDataset = 'picsum';
+    let currentModel = 'vitb32';
+    let currentProjection = 'tsne';   // 'tsne' | 'pca' | 'umap' | 'pumap'
 
     // Per-projection coords cache: projCoords[key] = [[x,y], ...]
     let projCoords = {};
@@ -31,7 +33,7 @@
     const PADDING = 60;
 
     // Selection
-    let selectionMode = 'lasso';
+    let interactionMode = 'pan'; // 'pan' | 'lasso' | 'rect'
     let isSelecting = false;
     let lassoPath = [];
     let rectStart = null, rectEnd = null;
@@ -291,7 +293,7 @@
         const ctx = scatterCtx;
         ctx.clearRect(0, 0, canvasW, canvasH);
 
-        const r      = Math.max(3.5, 5.5 / Math.sqrt(viewScale));
+        const r      = 5 * Math.sqrt(viewScale);
         const rHover = r + 3;
 
         // Unselected
@@ -340,7 +342,7 @@
         const ctx = selectionCtx;
         ctx.clearRect(0, 0, canvasW, canvasH);
 
-        if (selectionMode === 'lasso' && lassoPath.length > 1) {
+        if (interactionMode === 'lasso' && lassoPath.length > 1) {
             ctx.beginPath();
             ctx.moveTo(lassoPath[0].x, lassoPath[0].y);
             for (let i = 1; i < lassoPath.length; i++) ctx.lineTo(lassoPath[i].x, lassoPath[i].y);
@@ -354,7 +356,7 @@
             ctx.setLineDash([]);
         }
 
-        if (selectionMode === 'rect' && rectStart && rectEnd) {
+        if (interactionMode === 'rect' && rectStart && rectEnd) {
             const x = Math.min(rectStart.x, rectEnd.x);
             const y = Math.min(rectStart.y, rectEnd.y);
             const w = Math.abs(rectEnd.x - rectStart.x);
@@ -388,9 +390,9 @@
         selectedIds.clear();
         for (const p of points) {
             let inside = false;
-            if (selectionMode === 'lasso' && lassoPath.length > 2)
+            if (interactionMode === 'lasso' && lassoPath.length > 2)
                 inside = pointInPolygon(p.screenX, p.screenY, lassoPath);
-            else if (selectionMode === 'rect' && rectStart && rectEnd)
+            else if (interactionMode === 'rect' && rectStart && rectEnd)
                 inside = pointInRect(p.screenX, p.screenY, rectStart, rectEnd);
             if (inside) selectedIds.add(p.id);
         }
@@ -450,20 +452,39 @@
     }
 
     // ── Interaction ───────────────────────────────────────────────
+    function updateCanvasCursor() {
+        const canvas = selectionCanvas;
+        if (interactionMode === 'pan') {
+            canvas.style.cursor = isPanning ? 'grabbing' : 'grab';
+        } else {
+            canvas.style.cursor = 'crosshair';
+        }
+    }
+
     function setupInteraction() {
         const canvas = selectionCanvas;
+        updateCanvasCursor();
 
         canvas.addEventListener('mousedown', e => {
             const {x, y} = canvasXY(e);
+
+            // Right-click or Ctrl/Cmd+click always pans (regardless of mode)
             if (e.button === 2 || e.ctrlKey || e.metaKey) {
                 isPanning = true;
                 panStart = { x: e.clientX, y: e.clientY };
                 canvas.style.cursor = 'grabbing';
                 e.preventDefault(); return;
             }
-            isSelecting = true;
-            if (selectionMode === 'lasso') lassoPath = [{x, y}];
-            else { rectStart = {x, y}; rectEnd = {x, y}; }
+
+            if (interactionMode === 'pan') {
+                isPanning = true;
+                panStart = { x: e.clientX, y: e.clientY };
+                canvas.style.cursor = 'grabbing';
+            } else {
+                isSelecting = true;
+                if (interactionMode === 'lasso') lassoPath = [{x, y}];
+                else { rectStart = {x, y}; rectEnd = {x, y}; }
+            }
         });
 
         canvas.addEventListener('mousemove', e => {
@@ -476,7 +497,7 @@
                 render(); return;
             }
             if (isSelecting) {
-                if (selectionMode === 'lasso') lassoPath.push({x, y});
+                if (interactionMode === 'lasso') lassoPath.push({x, y});
                 else rectEnd = {x, y};
                 drawSelection(); return;
             }
@@ -498,14 +519,14 @@
         });
 
         canvas.addEventListener('mouseup', e => {
-            if (isPanning) { isPanning = false; canvas.style.cursor = 'crosshair'; return; }
+            if (isPanning) { isPanning = false; updateCanvasCursor(); return; }
             if (isSelecting) { isSelecting = false; computeSelection(); drawSelection(); }
         });
 
         canvas.addEventListener('contextmenu', e => e.preventDefault());
 
         canvas.addEventListener('mouseleave', () => {
-            if (isPanning) { isPanning = false; canvas.style.cursor = 'crosshair'; }
+            if (isPanning) { isPanning = false; updateCanvasCursor(); }
             hoveredPoint = null; hideTooltip(); render();
         });
 
@@ -515,8 +536,12 @@
             const factor = e.deltaY > 0 ? 0.9 : 1.1;
             const next = viewScale * factor;
             if (next < 0.15 || next > 25) return;
-            viewX = x - (x - viewX) * factor;
-            viewY = y - (y - viewY) * factor;
+            // Zoom toward cursor: compensate for the canvas-center offset
+            // in dataToScreen so the point under the cursor stays fixed.
+            const cx = canvasW / 2;
+            const cy = canvasH / 2;
+            viewX = viewX * factor + (1 - factor) * (x - cx);
+            viewY = viewY * factor + (1 - factor) * (y - cy);
             viewScale = next;
             // Clear selection visuals on zoom
             if (lassoPath.length || (rectStart && rectEnd)) {
@@ -525,6 +550,16 @@
             }
             render();
         }, { passive: false });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', e => {
+            // Don't trigger shortcuts when typing in inputs
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+            const key = e.key.toLowerCase();
+            if (key === 'h') setInteractionMode('pan');
+            else if (key === 'l') setInteractionMode('lasso');
+            else if (key === 'r') setInteractionMode('rect');
+        });
     }
 
     function canvasXY(e) {
@@ -550,20 +585,21 @@
     function hideTooltip() { dom.tooltip.classList.add('hidden'); }
 
     // ── Toolbar ───────────────────────────────────────────────────
-    function setupToolbar() {
+    function setInteractionMode(mode) {
+        interactionMode = mode;
+        const btnPan   = document.getElementById('btn-pan');
         const btnLasso = document.getElementById('btn-lasso');
         const btnRect  = document.getElementById('btn-rect');
+        btnPan.classList.toggle('active',   mode === 'pan');
+        btnLasso.classList.toggle('active', mode === 'lasso');
+        btnRect.classList.toggle('active',  mode === 'rect');
+        updateCanvasCursor();
+    }
 
-        btnLasso.addEventListener('click', () => {
-            selectionMode = 'lasso';
-            btnLasso.classList.add('active');
-            btnRect.classList.remove('active');
-        });
-        btnRect.addEventListener('click', () => {
-            selectionMode = 'rect';
-            btnRect.classList.add('active');
-            btnLasso.classList.remove('active');
-        });
+    function setupToolbar() {
+        document.getElementById('btn-pan').addEventListener('click', () => setInteractionMode('pan'));
+        document.getElementById('btn-lasso').addEventListener('click', () => setInteractionMode('lasso'));
+        document.getElementById('btn-rect').addEventListener('click', () => setInteractionMode('rect'));
         document.getElementById('btn-clear').addEventListener('click', clearSelection);
         document.getElementById('btn-reset-zoom').addEventListener('click', () => {
             viewX = 0; viewY = 0; viewScale = 1;
@@ -572,17 +608,33 @@
     }
 
     // ── Model Selector ────────────────────────────────────────────
-    function setupModelSelector() {
-        const select  = document.getElementById('model-select');
-        const wrapper = select.closest('.model-selector-wrapper');
+    function getDataUrl() {
+        return `data/${currentDataset}_${currentModel}.json`;
+    }
 
-        select.addEventListener('change', async e => {
-            currentDataUrl = e.target.value;
+    function setupModelSelector() {
+        const modelSelect   = document.getElementById('model-select');
+        const modelWrapper  = modelSelect.closest('.model-selector-wrapper');
+        const datasetSelect = document.getElementById('dataset-select');
+        const datasetWrapper = datasetSelect.closest('.dataset-selector-wrapper');
+
+        async function reloadData(wrapper) {
+            currentDataUrl = getDataUrl();
             wrapper.classList.add('model-loading');
             clearSelection();
             await loadData(currentDataUrl);
             render();
             wrapper.classList.remove('model-loading');
+        }
+
+        modelSelect.addEventListener('change', async e => {
+            currentModel = e.target.value;
+            await reloadData(modelWrapper);
+        });
+
+        datasetSelect.addEventListener('change', async e => {
+            currentDataset = e.target.value;
+            await reloadData(datasetWrapper);
         });
     }
 
