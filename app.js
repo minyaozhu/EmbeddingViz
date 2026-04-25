@@ -584,6 +584,7 @@
 
     // ── Toolbar ───────────────────────────────────────────────────
     function setInteractionMode(mode) {
+        if (mode !== interactionMode) clearSelection();
         interactionMode = mode;
         const btnPan   = document.getElementById('btn-pan');
         const btnLasso = document.getElementById('btn-lasso');
